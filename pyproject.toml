@@ -1,0 +1,18 @@
+[project]
+name = "ai-agent"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "docx2txt>=0.9",
+    "ipython>=9.13.0",
+    "langchain>=1.2.15",
+    "langchain-anthropic>=1.4.1",
+    "langchain-community>=0.4.1",
+    "langchain-gigachat>=0.5.0",
+    "langchain-openai>=1.2.1",
+    "pydantic-settings>=2.14.0",
+    "pydot>=4.0.1",
+    "pypdf>=6.13.3",
+]
