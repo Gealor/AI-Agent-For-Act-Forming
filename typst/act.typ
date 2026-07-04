@@ -2,7 +2,8 @@
 #import "@preview/zero:0.3.3": num, set-group
 #set-group(size: 3, separator: sym.space.thin, threshold: 4)
 
-#let act = json("act.json")
+#let data_path = sys.inputs.at("data", default: "act.json")
+#let act = json(data_path)
 
 #let act_sum = act.jobs.map(job => job.at("price")).sum()
 

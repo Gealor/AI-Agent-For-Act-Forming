@@ -13,14 +13,24 @@ from models.jobs import Jobs
 def _prepare_json_for_typst(data: Dict[str, Any], file_path: Path = settings.FILE_PATH):
     with open(file_path, mode="w", encoding="utf-8") as file:
         json.dump(data, file, indent=4, ensure_ascii=False)
+    
+    print(f"Успешно записано в файл! {file_path}")  
+    return file_path
 
 
 def _typst_run(
+    data_path: Path | str,
     template_path: Path | str = settings.TEMPLATE_ACT_PATH, 
     output_path: Path | str = settings.FINAL_ACT_PATH,
 ) -> Path | str:
-    command = ("typst", "compile", str(template_path), str(output_path))
+    command = (
+        "typst", "compile", 
+        str(template_path), str(output_path),
+        "--input", f"data={data_path}"
+    
+    )
     try:
+        print(f"Компиляция отчета с данными из файла {data_path}...")
         subprocess.run(
             command,
             check=True,
@@ -29,13 +39,14 @@ def _typst_run(
         )
     except subprocess.CalledProcessError as e:
         print(e.stderr)
+        raise e
     else:
         print(f"Файл успешно записан в {output_path}!")
 
     return output_path
 
 
-
+# TODO: добавить поиск найденных аттрибутов по документу (ИНН, БИК, корр.счет, рас.счет и т.д.)
 @tool()
 def generate_pdf_act(customer: CustomerInput, jobs: List[Jobs]) -> Tuple[Customer, List[Jobs], Path | str]:
     """Получение данных о заказчике, запись их в файл и генерация Акта оказанных услуг"""
@@ -55,10 +66,9 @@ def generate_pdf_act(customer: CustomerInput, jobs: List[Jobs]) -> Tuple[Custome
         "customer": strict_customer.model_dump(),
     }
 
-    _prepare_json_for_typst(data=data)
-    
-    print("Успешно записано в файл!")  
+    data_path = _prepare_json_for_typst(data=data)
+    data_path = data_path.relative_to(settings.TYPST_DIR)
 
-    output_path = _typst_run()
+    output_path = _typst_run(data_path)
     
     return strict_customer, jobs, output_path
