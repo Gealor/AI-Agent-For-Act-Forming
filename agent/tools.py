@@ -6,7 +6,7 @@ from langchain.tools import ToolException, tool
 from pydantic import ValidationError
 
 from agent.agent_graph.error_handling import hard_errors_handling, soft_errors_handling, split_errors
-from agent.typst import _prepare_json_for_typst, _typst_run
+from agent.typst import _prepare_json_for_typst, _typst_run, delete_file
 from config import settings
 from models.customers_and_bank import Customer, CustomerInput
 from models.jobs import Jobs
@@ -34,10 +34,13 @@ def generate_pdf_act(customer: CustomerInput, jobs: List[Jobs]) -> Tuple[Custome
         "jobs": [job.model_dump() for job in jobs],
         "customer": strict_customer.model_dump(),
     }
-
-    data_path = _prepare_json_for_typst(data=data)
+    json_path = settings.TYPST_DIR / f"{strict_customer.act_filename}.json"
+    data_path = _prepare_json_for_typst(data=data, file_path=json_path)
     data_path = data_path.relative_to(settings.TYPST_DIR)
 
-    output_path = _typst_run(data_path)
+    output_path = settings.TYPST_DIR / f"{strict_customer.act_filename}.pdf"
+    output_path = _typst_run(data_path, output_path=output_path)
+    
+    delete_file(json_path)
     
     return strict_customer, jobs, output_path

@@ -1,4 +1,7 @@
+from datetime import date
+import re
 from itertools import cycle
+import uuid
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
@@ -19,8 +22,8 @@ class CustomerInput(BaseModel):
     INN: str
     signatory: str
     bank: BankInput
-    OGRN: str | None
-    address: str | None
+    OGRN: str | None = Field(None)
+    address: str | None = Field(None)
 
 
 # Модели для 
@@ -99,6 +102,9 @@ class Bank(BankInput):
         return value
         
 
+LEGAL_FORM_PREFIXES = ("ООО", "ИП", "АО", "ЗАО", "ОАО", "ПАО", "НКО", "ТОО")
+
+
 class Customer(CustomerInput):
     """Заказчик"""
     name: str = Field(description="Полное название юридического лица, например, ООО «Рога и копыта»")  
@@ -125,6 +131,27 @@ class Customer(CustomerInput):
         
         return value
 
+    @property
+    def normalize_name(self):
+        normalize_name_company = self.name.strip().strip("«»\"'").strip()
+
+        for prefix in LEGAL_FORM_PREFIXES:
+            if normalize_name_company.startswith(prefix):
+                normalize_name_company = normalize_name_company[len(prefix):].strip()
+                break
+
+        normalize_name_company = normalize_name_company.strip("«»\"'").strip()
+        normalize_name_company = re.sub(r"[\\/:*?\"<>|]", "", normalize_name_company)
+        normalize_name_company = re.sub(r"\s+", "_", normalize_name_company)
+
+        return normalize_name_company
+
+    @property
+    def act_filename(self) -> str:
+        now = date.today().strftime("%Y_%m_%d")
+        hex = uuid.uuid4().hex[:6]
+
+        return f"Акт_{self.normalize_name}_{now}_{hex}"
 
 
 

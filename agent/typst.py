@@ -40,3 +40,6 @@ def _typst_run(
         print(f"Файл успешно записан в {output_path}!")
 
     return output_path
+
+def delete_file(file: Path) -> None:
+    file.unlink(missing_ok=True)
