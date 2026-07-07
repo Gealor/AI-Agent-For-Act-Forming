@@ -1,20 +1,26 @@
-import hashlib
-from pathlib import Path
 from typing import Sequence
 
 from langchain.chat_models import BaseChatModel
 from langchain.messages import HumanMessage, RemoveMessage, SystemMessage
 from langchain.tools import BaseTool
-from langchain_core.runnables import RunnableConfig
-from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
 
-from agent.agent_graph.build_agent_graph import get_summary_prompt
-from agent.agent_graph.states import AgentState
 from agent.utils import debug_print_history_messages, find_last_human_message, get_num_tokens
-from file_uploaders.uploaders import FileUploaderFactory
+from agent.agent_graph.states import AgentState
 from config import settings
+
+
+def get_summary_prompt(summary: str) -> str:
+    if summary:
+        summary_prompt = (
+            f"This is summary of conversation to date: {summary}\n\n"
+            "Extend the summary by taking into account the new messages above."
+        )
+    else:
+        summary_prompt = "Create a summary of the conversation above."
+
+    return summary_prompt
 
 
 def build_agent(model: BaseChatModel, tools_list: Sequence[BaseTool], checkpointer, system_prompt: str | None = None):
@@ -111,52 +117,3 @@ def build_agent(model: BaseChatModel, tools_list: Sequence[BaseTool], checkpoint
     workflow.add_edge("summarize", END) # Суммаризация это внутреннее действие модели, результат не должен отправляться обратно в агента, для "человекточитаемости"
     
     return workflow.compile(checkpointer=checkpointer)
-
-
-
-class LLMAgent:
-    def __init__(
-        self,
-        model: BaseChatModel,
-        tools: Sequence[BaseTool],
-        temperature: float = 0.1,
-        system_prompt: str | None = None,
-    ):
-        self._model = model.model_copy(update={"temperature": temperature})
-        # self._model = model
-
-        self._agent = build_agent(self._model, tools, InMemorySaver(), system_prompt) # type: ignore
-        self._config: RunnableConfig = {
-            "configurable": {"thread_id": hashlib.sha256().hexdigest()}
-        }
-
-    def process_file(self, file: Path | str) -> dict:
-        print(f"Обработка файла {file} для LLM...")
-        uploader = FileUploaderFactory.get_uploader(file)
-        return uploader.upload_file(file)
-
-    def invoke(
-        self,
-        content: str,
-        file_paths: list[str | Path] | None = None,
-    ) -> str:
-        """Отправляет сообщение в чат"""
-        message_content: list[dict] = []
-        if content:
-            message_content.append({"type": "text", "text": content})
-
-        message_content: list[dict] = [{"type": "text", "text": content}]
-        if file_paths:
-            for path in file_paths:
-                file_dict = self.process_file(path)
-                message_content.append(file_dict)
-
-        messages = AgentState(messages=[HumanMessage(content=message_content)]) # type: ignore
-        print("Сообщение отправлено в LLM...")
-        response = self._agent.invoke(
-            messages,
-            config=self._config,
-        )
-        print(response["messages"][-1])
-
-        return response["messages"][-1].content

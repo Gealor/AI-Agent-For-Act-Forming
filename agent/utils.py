@@ -18,18 +18,6 @@ def debug_print_history_messages(messages: list[AnyMessage]):
     # ===============================================
 
 
-def get_summary_prompt(summary: str) -> str:
-    if summary:
-        summary_prompt = (
-            f"This is summary of conversation to date: {summary}\n\n"
-            "Extend the summary by taking into account the new messages above."
-        )
-    else:
-        summary_prompt = "Create a summary of the conversation above."
-
-    return summary_prompt
-
-
 def get_num_tokens(message: AnyMessage) -> int:
     num_tokens = 0
 

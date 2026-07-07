@@ -1,6 +1,6 @@
 from itertools import cycle
 
-from pydantic import BaseModel, ConfigDict, ValidationInfo, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
 from models.exceptions import InvalidBankCurrentAccountFormat, InvalidCorporateAccountFormat, InvalidSignatoryFormatException
 
@@ -19,17 +19,17 @@ class CustomerInput(BaseModel):
     INN: str
     signatory: str
     bank: BankInput
-    OGRN: str | None = None
-    address: str | None = None
+    OGRN: str | None
+    address: str | None
 
 
 # Модели для 
 class Bank(BankInput):
     """Банковские реквизиты заказчика"""
-    name: str  # наименование банка
-    BIC: str  # БИК
-    current_account: str  # расчётный счёт
-    corporate_account: str  # корреспондентский счёт
+    name: str = Field(description="Наименование банка")
+    BIC: str = Field(description="БИК")
+    current_account: str = Field(description="Расчётный счёт") 
+    corporate_account: str = Field(description="Корреспондентский счёт")
 
     @field_validator("current_account")
     def check_current_account(cls, value, info: ValidationInfo):
@@ -101,12 +101,12 @@ class Bank(BankInput):
 
 class Customer(CustomerInput):
     """Заказчик"""
-    name: str  # полное название юридического лица, например, ООО «Рога и копыта»
-    INN: str  # ИНН
-    OGRN: str | None = None  # ОГРН или ОГРНИП
-    address: str | None = None  # юридический адрес 
-    signatory: str  # подписант
-    bank: Bank  # банковские реквизиты заказчика
+    name: str = Field(description="Полное название юридического лица, например, ООО «Рога и копыта»")  
+    INN: str = Field(description="ИНН")
+    OGRN: str | None = Field(None, description="ОГРН или ОГРНИП")
+    address: str | None = Field(None, description="Юридический адрес")
+    signatory: str = Field(description="Подписант")
+    bank: Bank = Field(description="Банковские реквизиты заказчика")
 
     @field_validator("signatory")
     def check_signatory(cls, value):
