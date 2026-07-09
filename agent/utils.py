@@ -1,4 +1,7 @@
+import logging
+
 from langchain.messages import AnyMessage, HumanMessage
+from logger import log
 
 
 def find_last_human_message(messages: list[AnyMessage]) -> int:
@@ -11,10 +14,11 @@ def find_last_human_message(messages: list[AnyMessage]) -> int:
 
 def debug_print_history_messages(messages: list[AnyMessage]):
     # ==================== DEBUG ====================
-    print("\n\033[93m" + "="*40 + " [DEBUG: AGENT INPUT] " + "="*40 + "\033[0m")
-    for m in messages:
-        m.pretty_print() # Красивый, цветной вывод сообщений!
-    print("\033[93m" + "="*102 + "\033[0m\n")
+    log.debug("\n\033[93m" + "="*40 + " [DEBUG: AGENT INPUT] " + "="*40 + "\033[0m")
+    if log.isEnabledFor(logging.DEBUG):
+        for m in messages:
+            m.pretty_print() # Красивый, цветной вывод сообщений!
+    log.debug("\033[93m" + "="*102 + "\033[0m\n")
     # ===============================================
 
 

@@ -11,6 +11,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from agent.agent_graph.states import AgentState
 from agent.agent_graph.build_agent_graph import build_agent
 from file_uploaders.uploaders import FileUploaderFactory
+from logger import log
 
 class LLMAgent:
     def __init__(
@@ -29,7 +30,7 @@ class LLMAgent:
         }
 
     def process_file(self, file: Path | str) -> dict:
-        print(f"Обработка файла {file} для LLM...")
+        log.debug("Обработка файла %s для LLM...", file)
         uploader = FileUploaderFactory.get_uploader(file)
         return uploader.upload_file(file)
 
@@ -50,11 +51,11 @@ class LLMAgent:
                 message_content.append(file_dict)
 
         messages = AgentState(messages=[HumanMessage(content=message_content)]) # type: ignore
-        print("Сообщение отправлено в LLM...")
+        log.debug("Сообщение отправлено в LLM...")
         response = self._agent.invoke(
             messages,
             config=self._config,
         )
-        print(response["messages"][-1])
+        log.debug(response["messages"][-1])
 
         return response["messages"][-1].content
