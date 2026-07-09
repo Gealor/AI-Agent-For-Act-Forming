@@ -3,7 +3,7 @@ import logging
 from langchain.messages import AnyMessage, HumanMessage
 from logger import log
 
-
+# TODO: добавить возможность вытащить индекс не последнего сообщения человека, а N последних сообщений человека.
 def find_last_human_message(messages: list[AnyMessage]) -> int:
     last_human_index = len(messages) - 1
     while last_human_index >= 0 and not isinstance(messages[last_human_index], HumanMessage):
