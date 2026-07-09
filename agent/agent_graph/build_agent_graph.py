@@ -1,7 +1,7 @@
 from typing import Sequence
 
 from langchain.chat_models import BaseChatModel
-from langchain.messages import HumanMessage, RemoveMessage, SystemMessage
+from langchain.messages import AnyMessage, HumanMessage, RemoveMessage, SystemMessage
 from langchain.tools import BaseTool
 from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
@@ -22,6 +22,20 @@ def get_summary_prompt(summary: str) -> str:
         summary_prompt = "Create a summary of the conversation above."
 
     return summary_prompt
+
+
+def get_messages_for_summarize(messages: list[AnyMessage]) -> list[AnyMessage]:
+    last_human_index = find_last_human_message(messages)
+
+    if last_human_index <= 0:
+        log.debug("Нечего суммаризировать (слишком мало сообщений)")
+        return []
+        
+    # Берем на суммаризацию всё, что было ДО последнего запроса пользователя
+    # Также исключаем SystemMessage, если оно есть в начале
+    messages_to_summarize: list[AnyMessage] = [m for m in messages[:last_human_index] if not isinstance(m, SystemMessage)]
+
+    return messages_to_summarize
 
 
 def build_agent(model: BaseChatModel, tools_list: Sequence[BaseTool], checkpointer, system_prompt: str | None = None):
@@ -58,16 +72,8 @@ def build_agent(model: BaseChatModel, tools_list: Sequence[BaseTool], checkpoint
         log.debug("\033[96m[SYSTEM]: ЗАПУЩЕНА СУММАРИЗАЦИЯ...\033[0m")
         summary = state.get("summary", "")
         messages = state["messages"]
-
-        last_human_index = find_last_human_message(messages)
-
-        if last_human_index <= 0:
-            log.debug("Нечего суммаризировать (слишком мало сообщений)")
-            return {}
         
-        # Берем на суммаризацию всё, что было ДО последнего запроса пользователя
-        # Также исключаем SystemMessage, если оно есть в начале
-        messages_to_summarize = [m for m in messages[:last_human_index] if not isinstance(m, SystemMessage)]
+        messages_to_summarize = get_messages_for_summarize(messages)
         
         if not messages_to_summarize:
             return {} # Нечего суммаризировать
