@@ -132,15 +132,15 @@ class Customer(CustomerInput):
         return value
 
     @property
-    def normalize_name(self):
-        normalize_name_company = self.name.strip().strip("«»\"'").strip()
-
+    def normalized_name(self):
+        normalize_name_company = self.name.replace("«", "").replace("»", "").replace("\"", "")
+        normalize_name_company = normalize_name_company.strip()
+        
         for prefix in LEGAL_FORM_PREFIXES:
             if normalize_name_company.startswith(prefix):
                 normalize_name_company = normalize_name_company[len(prefix):].strip()
                 break
 
-        normalize_name_company = normalize_name_company.strip("«»\"'").strip()
         normalize_name_company = re.sub(r"[\\/:*?\"<>|]", "", normalize_name_company)
         normalize_name_company = re.sub(r"\s+", "_", normalize_name_company)
 
@@ -151,7 +151,7 @@ class Customer(CustomerInput):
         now = date.today().strftime("%Y_%m_%d")
         hex = uuid.uuid4().hex[:6]
 
-        return f"Акт_{self.normalize_name}_{now}_{hex}"
+        return f"Акт_{now}_{self.normalized_name}_{hex}"
 
 
 
