@@ -9,6 +9,7 @@ from langgraph.prebuilt import ToolNode
 from agent.utils import debug_print_history_messages, find_last_human_message, get_num_tokens
 from agent.agent_graph.states import AgentState
 from config import settings
+from logger import log
 
 
 def get_summary_prompt(summary: str) -> str:
@@ -34,7 +35,7 @@ def build_agent(model: BaseChatModel, tools_list: Sequence[BaseTool], checkpoint
     def call_model(state: AgentState):
         messages = state["messages"] # Вся история сообщений
         summary = state.get("summary", "")
-        print("SUMMARY: ", summary)
+        log.debug("SUMMARY: %s", summary)
 
         sys_content = system_prompt or "You are a helpful assistant."
         if summary:
@@ -54,14 +55,14 @@ def build_agent(model: BaseChatModel, tools_list: Sequence[BaseTool], checkpoint
     
     def summarize_conversation(state: AgentState):
         """Узел, который обновляет саммари и удаляет старые сообщения."""
-        print("\033[96m[SYSTEM]: ЗАПУЩЕНА СУММАРИЗАЦИЯ...\033[0m")
+        log.debug("\033[96m[SYSTEM]: ЗАПУЩЕНА СУММАРИЗАЦИЯ...\033[0m")
         summary = state.get("summary", "")
         messages = state["messages"]
 
         last_human_index = find_last_human_message(messages)
 
         if last_human_index <= 0:
-            print("Нечего суммаризировать (слишком мало сообщений)")
+            log.debug("Нечего суммаризировать (слишком мало сообщений)")
             return {}
         
         # Берем на суммаризацию всё, что было ДО последнего запроса пользователя
@@ -97,7 +98,7 @@ def build_agent(model: BaseChatModel, tools_list: Sequence[BaseTool], checkpoint
 
         num_tokens = get_num_tokens(last_message)   
         
-        print(f"\033[90m[Tokens Used: {num_tokens}]\033[0m")
+        log.debug("\033[90m[Tokens Used: %s]\033[0m", num_tokens)
         
         if num_tokens > settings.MAX_CONTEXT_WINDOW:
             return "summarize"
