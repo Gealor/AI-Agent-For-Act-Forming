@@ -1,6 +1,9 @@
+import logging
+
 from langchain.messages import AnyMessage, HumanMessage
+from logger import log
 
-
+# TODO: добавить возможность вытащить индекс не последнего сообщения человека, а N последних сообщений человека.
 def find_last_human_message(messages: list[AnyMessage]) -> int:
     last_human_index = len(messages) - 1
     while last_human_index >= 0 and not isinstance(messages[last_human_index], HumanMessage):
@@ -11,25 +14,14 @@ def find_last_human_message(messages: list[AnyMessage]) -> int:
 
 def debug_print_history_messages(messages: list[AnyMessage]):
     # ==================== DEBUG ====================
-    print("\n\033[93m" + "="*40 + " [DEBUG: AGENT INPUT] " + "="*40 + "\033[0m")
-    for m in messages:
-        m.pretty_print() # Красивый, цветной вывод сообщений!
-    print("\033[93m" + "="*102 + "\033[0m\n")
+    log.debug("\n\033[93m" + "="*40 + " [DEBUG: AGENT INPUT] " + "="*40 + "\033[0m")
+    if log.isEnabledFor(logging.DEBUG):
+        for m in messages:
+            m.pretty_print() # Красивый, цветной вывод сообщений!
+    log.debug("\033[93m" + "="*102 + "\033[0m\n")
     # ===============================================
 
-
-def get_summary_prompt(summary: str) -> str:
-    if summary:
-        summary_prompt = (
-            f"This is summary of conversation to date: {summary}\n\n"
-            "Extend the summary by taking into account the new messages above."
-        )
-    else:
-        summary_prompt = "Create a summary of the conversation above."
-
-    return summary_prompt
-
-
+# может меняться от одной модели к другой. Стоит вынести в логику конкретной модели (у некоторых провайдеров/моделей может быть другая логика подсчета)
 def get_num_tokens(message: AnyMessage) -> int:
     num_tokens = 0
 

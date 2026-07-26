@@ -1,6 +1,9 @@
+from datetime import date
+import re
 from itertools import cycle
+import uuid
 
-from pydantic import BaseModel, ConfigDict, ValidationInfo, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
 from models.exceptions import InvalidBankCurrentAccountFormat, InvalidCorporateAccountFormat, InvalidSignatoryFormatException
 
@@ -19,17 +22,17 @@ class CustomerInput(BaseModel):
     INN: str
     signatory: str
     bank: BankInput
-    OGRN: str | None = None
-    address: str | None = None
+    OGRN: str | None = Field(None)
+    address: str | None = Field(None)
 
 
 # Модели для 
 class Bank(BankInput):
     """Банковские реквизиты заказчика"""
-    name: str  # наименование банка
-    BIC: str  # БИК
-    current_account: str  # расчётный счёт
-    corporate_account: str  # корреспондентский счёт
+    name: str = Field(description="Наименование банка")
+    BIC: str = Field(description="БИК")
+    current_account: str = Field(description="Расчётный счёт") 
+    corporate_account: str = Field(description="Корреспондентский счёт")
 
     @field_validator("current_account")
     def check_current_account(cls, value, info: ValidationInfo):
@@ -99,14 +102,17 @@ class Bank(BankInput):
         return value
         
 
+LEGAL_FORM_PREFIXES = ("ООО", "ИП", "АО", "ЗАО", "ОАО", "ПАО", "НКО", "ТОО")
+
+
 class Customer(CustomerInput):
     """Заказчик"""
-    name: str  # полное название юридического лица, например, ООО «Рога и копыта»
-    INN: str  # ИНН
-    OGRN: str | None = None  # ОГРН или ОГРНИП
-    address: str | None = None  # юридический адрес 
-    signatory: str  # подписант
-    bank: Bank  # банковские реквизиты заказчика
+    name: str = Field(description="Полное название юридического лица, например, ООО «Рога и копыта»")  
+    INN: str = Field(description="ИНН")
+    OGRN: str | None = Field(None, description="ОГРН или ОГРНИП")
+    address: str | None = Field(None, description="Юридический адрес")
+    signatory: str = Field(description="Подписант")
+    bank: Bank = Field(description="Банковские реквизиты заказчика")
 
     @field_validator("signatory")
     def check_signatory(cls, value):
@@ -125,6 +131,27 @@ class Customer(CustomerInput):
         
         return value
 
+    @property
+    def normalized_name(self):
+        normalize_name_company = self.name.replace("«", "").replace("»", "").replace("\"", "")
+        normalize_name_company = normalize_name_company.strip()
+        
+        for prefix in LEGAL_FORM_PREFIXES:
+            if normalize_name_company.startswith(prefix):
+                normalize_name_company = normalize_name_company[len(prefix):].strip()
+                break
+
+        normalize_name_company = re.sub(r"[\\/:*?\"<>|]", "", normalize_name_company)
+        normalize_name_company = re.sub(r"\s+", "_", normalize_name_company)
+
+        return normalize_name_company
+
+    @property
+    def act_filename(self) -> str:
+        now = date.today().strftime("%Y_%m_%d")
+        hex = uuid.uuid4().hex[:6]
+
+        return f"Акт_{now}_{self.normalized_name}_{hex}"
 
 
 
